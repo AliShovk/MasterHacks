@@ -1,0 +1,77 @@
+<?php
+function getDatabaseConnection() {
+    $envHost = getenv('DB_HOST');
+    $isLocalEnvHost = ($envHost === 'localhost' || $envHost === '127.0.0.1');
+    if ($envHost !== false && $envHost !== '' && !$isLocalEnvHost) {
+        $hosts = [$envHost, 'mysql.e22f1228a3bf.hosting.myjino.ru'];
+    } else {
+        $hosts = ['mysql.e22f1228a3bf.hosting.myjino.ru', 'localhost'];
+    }
+    $port = getenv('DB_PORT') ?: '3306';
+    $dbname = getenv('DB_NAME') ?: 'j43473032_masterhacks';
+    $username = getenv('DB_USER') ?: 'j43473032_master';
+    $password = getenv('DB_PASS') ?: '02129261Sxc+';
+
+    $lastException = null;
+    foreach ($hosts as $host) {
+        try {
+            $dsn = "mysql:host={$host};";
+            if ($port !== '') {
+                $dsn .= "port={$port};";
+            }
+            $dsn .= "dbname={$dbname};charset=utf8mb4";
+
+            $pdo = new PDO(
+                $dsn,
+                $username,
+                $password,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false
+                ]
+            );
+            return $pdo;
+        } catch (PDOException $e) {
+            $lastException = $e;
+        }
+    }
+
+    if ($lastException) {
+        throw $lastException;
+    }
+
+    throw new PDOException('Database connection failed');
+}
+
+define('SITE_URL', 'https://masterhacks.ru');
+
+if (!defined('USE_DB')) {
+    define('USE_DB', true);
+}
+
+if (!defined('TELEGRAM_BOT_TOKEN')) {
+    $token = getenv('TELEGRAM_BOT_TOKEN') ?: '8213110831:AAGDdP7RQVLvV8NG0ouuQWZ_IBR5p9e-MfY';
+    define('TELEGRAM_BOT_TOKEN', $token);
+}
+
+if (!defined('TELEGRAM_BOT_URL')) {
+    $botUrl = getenv('TELEGRAM_BOT_URL') ?: 'https://t.me/mastershacks_bot';
+    define('TELEGRAM_BOT_URL', $botUrl);
+}
+
+ if (!defined('TELEGRAM_BOT_USERNAME')) {
+     $botUsername = getenv('TELEGRAM_BOT_USERNAME') ?: 'mastershacks_bot';
+     define('TELEGRAM_BOT_USERNAME', $botUsername);
+ }
+
+if (!defined('ADMIN_CHAT_ID')) {
+    $adminChatId = getenv('ADMIN_CHAT_ID') ?: '5405885462';
+    define('ADMIN_CHAT_ID', $adminChatId);
+}
+
+if (!defined('ADMIN_PANEL_KEY')) {
+    $adminPanelKey = getenv('ADMIN_PANEL_KEY') ?: 'mh_admin_2026_01_27__9f1c7d4a2b6e4c0f8a1d3e5b7c9a0d2f';
+    define('ADMIN_PANEL_KEY', $adminPanelKey);
+}
+

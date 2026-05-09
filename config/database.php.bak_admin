@@ -1,0 +1,48 @@
+<?php
+if (!defined("USE_DB")) {
+    define("USE_DB", true);
+if (!defined("SITE_URL")) { define("SITE_URL", getenv("SITE_URL") ?: "https://masterhacks.ru"); }
+if (!defined("TELEGRAM_BOT_URL")) { define("TELEGRAM_BOT_URL", getenv("TELEGRAM_BOT_URL") ?: "https://t.me/mastershacks_bot"); }
+if (!defined("TELEGRAM_BOT_USERNAME")) { define("TELEGRAM_BOT_USERNAME", getenv("TELEGRAM_BOT_USERNAME") ?: "mastershacks_bot"); }
+
+}
+function getDatabaseConnection() {
+    $envHost = getenv('DB_HOST');
+    $isLocalEnvHost = ($envHost === 'localhost' || $envHost === '127.0.0.1');
+    if ($envHost !== false && $envHost !== '' && !$isLocalEnvHost) {
+        $hosts = [$envHost, 'localhost'];
+    } else {
+        $hosts = ['localhost'];
+    }
+    $port = getenv('DB_PORT') ?: '3306';
+    $dbname = getenv('DB_NAME') ?: 'masterhacks';
+    $username = getenv('DB_USER') ?: 'masterhacks';
+    $password = getenv('DB_PASS') ?: 'g7azGQhhri_4-M';
+
+    $lastException = null;
+    foreach ($hosts as $host) {
+        try {
+            $dsn = "mysql:host={$host};";
+            if ($port !== '') {
+                $dsn .= "port={$port};";
+            }
+            $dsn .= "dbname={$dbname};charset=utf8mb4";
+
+            $pdo = new PDO(
+                $dsn,
+                $username,
+                $password,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
+            );
+            return $pdo;
+        } catch (PDOException $e) {
+            $lastException = $e;
+            continue;
+        }
+    }
+    throw $lastException;
+}

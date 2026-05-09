@@ -1,0 +1,167 @@
+# ==========================================
+# MasterHacks - Оптимизированный .htaccess
+# ==========================================
+
+# Включение кэширования
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType video/mp4 "access plus 1 month"
+    ExpiresByType video/webm "access plus 1 month"
+    ExpiresByType text/html "access plus 1 hour"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType application/json "access plus 5 minutes"
+</IfModule>
+
+# Cache-Control заголовки
+<IfModule mod_headers.c>
+    # Медиа файлы
+    <FilesMatch "\.(mp4|webm|jpg|jpeg|png|gif|webp)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    
+    # HTML
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+    
+    # PHP
+    <FilesMatch "\.php$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate"
+    </FilesMatch>
+    
+    # Безопасность
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # CSP для защиты от XSS
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; media-src 'self' blob:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://mc.yandex.ru; frame-ancestors 'self';"
+</IfModule>
+
+# Сжатие
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+    
+    # Не сжимаем уже сжатые файлы
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp|mp4|webm)$ no-gzip
+</IfModule>
+
+# ==========================================
+# БЕЗОПАСНОСТЬ
+# ==========================================
+
+# Защита JSON файлов данных
+<FilesMatch "\.json$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Защита директории data
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Блокируем прямой доступ к data/
+    RewriteRule ^data/ - [F,L]
+    
+    # Блокируем прямой доступ к cache
+    RewriteRule ^data/cache/ - [F,L]
+</IfModule>
+
+# Защита от доступа к скрытым файлам
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Защита важных файлов
+<FilesMatch "(^#.*#|\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|sw[op])|~)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ==========================================
+# URL ОБРАБОТКА
+# ==========================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Убираем .php расширение
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^(.*)$ $1.php [L]
+    
+    # Красивые URL для постов
+    RewriteRule ^post/([0-9]+)$ index.php?post=$1 [L,QSA]
+</IfModule>
+
+# Запрещаем листинг папок
+Options -Indexes
+
+# Лимиты загрузки (если поддерживается)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 100M
+    php_value post_max_size 100M
+    php_value max_execution_time 600
+    php_value max_input_time 600
+    php_value memory_limit 256M
+</IfModule>
+
+# Защита от hotlinking медиа (опционально)
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTP_REFERER} !^$
+#     RewriteCond %{HTTP_REFERER} !^https?://(www\.)?masterhacks\.ru [NC]
+#     RewriteRule \.(mp4|webm|jpg|jpeg|png|gif)$ - [F,L]
+# </IfModule>
+
+# Безопасность MasterHacks
+# Добавлено: 2026-03-14
+
+# Защита от directory listing
+Options -Indexes
+
+# Защита конфигурационных файлов
+<FilesMatch "\.(env|ini|log|sh|sql|bak|backup|old)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Защита от некоторых атак
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options nosniff
+    Header set X-Frame-Options DENY
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Кэширование для производительности
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType video/mp4 "access plus 1 year"
+    ExpiresByType video/webm "access plus 1 year"
+</IfModule>

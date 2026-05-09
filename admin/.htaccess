@@ -1,0 +1,4 @@
+AuthType Basic
+AuthName "MasterHacks Admin"
+AuthUserFile "/full/server/path/to/masterhacks.ru/admin/.htpasswd"
+Require valid-user

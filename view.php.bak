@@ -1,0 +1,98 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
+session_start();
+
+if (!file_exists(__DIR__ . '/config/database.php')) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database not configured']);
+    exit;
+}
+
+require_once __DIR__ . '/config/database.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+if (!is_array($input) || !isset($input['post_id']) || !is_numeric($input['post_id'])) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Invalid post ID']);
+    exit;
+}
+
+$postId = (int)$input['post_id'];
+if ($postId <= 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Post ID must be positive']);
+    exit;
+}
+
+$ttlSeconds = 600;
+$key = 'view_' . $postId;
+$now = time();
+
+if (isset($_SESSION[$key]) && is_int($_SESSION[$key]) && ($now - $_SESSION[$key]) < $ttlSeconds) {
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare('SELECT views FROM videos WHERE id = :id');
+        $stmt->execute([':id' => $postId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo json_encode([
+            'success' => true,
+            'skipped' => true,
+            'views' => isset($row['views']) ? (int)$row['views'] : null
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (Throwable $e) {
+        echo json_encode(['success' => true, 'skipped' => true, 'views' => null], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
+$_SESSION[$key] = $now;
+
+try {
+    $pdo = getDatabaseConnection();
+
+    $updated = false;
+    $lastErr = null;
+    for ($i = 0; $i < 2; $i++) {
+        try {
+            $stmt = $pdo->prepare('UPDATE videos SET views = views + 1 WHERE id = :id');
+            $stmt->execute([':id' => $postId]);
+            $updated = true;
+            $lastErr = null;
+            break;
+        } catch (Throwable $e) {
+            $lastErr = $e->getMessage();
+            // авто-миграция, если нет колонки views
+            if ($i === 0 && preg_match('/Unknown column\s+\'?views\'?/i', $lastErr)) {
+                try {
+                    $pdo->exec('ALTER TABLE videos ADD COLUMN views INT NOT NULL DEFAULT 0');
+                    continue;
+                } catch (Throwable $e2) {
+                    $lastErr = $e2->getMessage();
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    $stmt = $pdo->prepare('SELECT views FROM videos WHERE id = :id');
+    $stmt->execute([':id' => $postId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    echo json_encode([
+        'success' => $updated,
+        'views' => isset($row['views']) ? (int)$row['views'] : null,
+        'error' => $updated ? null : $lastErr
+    ], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+}
