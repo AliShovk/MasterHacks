@@ -689,11 +689,9 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 
 /* Кнопка "Загрузить еще" */
 .load-more-container { width: 100%; padding: 40px 20px; text-align: center; scroll-snap-align: start; }
-.load-more-btn { background: rgba(252, 123, 7, 0.08); border: 1px solid rgba(252, 123, 7, 0.3); color: #fc7b07; padding: 12px 24px; border-radius: 24px; font-size: 14px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; letter-spacing: 0.5px; }
-.load-more-btn:hover { background: rgba(252, 123, 7, 0.15); transform: translateY(-1px); }
-.load-more-btn:active { transform: translateY(0); }
-.load-more-btn.loading { opacity: 0.7; cursor: not-allowed; }
-.load-more-btn i { margin-right: 8px; }
+.load-more-status { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: rgba(252, 123, 7, 0.08); border: 1px solid rgba(252, 123, 7, 0.3); color: #fc7b07; padding: 12px 18px; border-radius: 24px; font-size: 13px; font-weight: 500; letter-spacing: 0.3px; min-width: 180px; }
+.load-more-status.loading { opacity: 0.9; }
+.load-more-status i { font-size: 14px; }
 
 @keyframes doubleTapHeart {
   0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
@@ -714,7 +712,7 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   .modal-content { width: 98%; max-height: 65vh; }
   .comments-container { padding: 10px 12px; }
   .comment-form { padding: 10px 12px; }
-  .load-more-btn { padding: 10px 20px; font-size: 13px; }
+  .load-more-status { padding: 10px 16px; font-size: 12px; min-width: 160px; }
   .top-nav { padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0)); }
   .logo-image { height: 40px; }
   .nav-actions { gap: 6px; max-width: calc(100vw - 110px); }
@@ -967,12 +965,12 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   <?php renderPost($post, $start + $index, $subscribedAuthors); ?>
   <?php endforeach; ?>
   
-  <!-- Кнопка "Загрузить еще" -->
+  <!-- Автоподгрузка -->
   <?php if($page < $total_pages): ?>
   <div class="load-more-container" id="loadMoreContainer">
-    <button class="load-more-btn" onclick="loadMorePosts()" id="loadMoreBtn">
-      <i class="fas fa-sync-alt"></i> Загрузить еще
-    </button>
+    <div class="load-more-status" id="loadMoreStatus">
+      <i class="fas fa-angle-double-down"></i> Листайте дальше
+    </div>
   </div>
   <?php endif; ?>
 </div>
@@ -1355,12 +1353,12 @@ async function loadMorePosts() {
     if (state.isLoading || state.currentPage >= state.totalPages) return;
     
     state.isLoading = true;
-    const btn = document.getElementById('loadMoreBtn');
+    const status = document.getElementById('loadMoreStatus');
     const container = document.getElementById('loadMoreContainer');
     
-    if (btn) {
-        btn.classList.add('loading');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+    if (status) {
+        status.classList.add('loading');
+        status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
     }
     
     try {
@@ -1426,9 +1424,9 @@ async function loadMorePosts() {
         showToast('Ошибка загрузки');
     } finally {
         state.isLoading = false;
-        if (btn) {
-            btn.classList.remove('loading');
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Загрузить еще';
+        if (status && state.currentPage < state.totalPages) {
+            status.classList.remove('loading');
+            status.innerHTML = '<i class="fas fa-angle-double-down"></i> Листайте дальше';
         }
     }
 }
