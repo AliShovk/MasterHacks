@@ -544,6 +544,24 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .post { position: relative; width: 100%; height: 100vh; height: -webkit-fill-available; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; background: #000; }
 @supports (padding-top: env(safe-area-inset-top)) { .post { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } }
 .media-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.intro-post{display:flex;align-items:center;justify-content:center;padding:calc(88px + env(safe-area-inset-top, 0)) 18px calc(24px + env(safe-area-inset-bottom, 0));background:radial-gradient(circle at top, rgba(252,123,7,.30), rgba(0,0,0,.92) 42%, #000 100%)}
+.intro-card{width:min(100%,560px);background:linear-gradient(180deg, rgba(18,18,18,.92), rgba(9,9,9,.96));border:1px solid rgba(255,255,255,.10);border-radius:24px;padding:22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.45);backdrop-filter:blur(10px)}
+.intro-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(252,123,7,.18);border:1px solid rgba(252,123,7,.35);color:#ffd2ad;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.intro-title{margin-top:14px;font-size:32px;line-height:1.05;font-weight:800;color:#fff}
+.intro-subtitle{margin-top:12px;font-size:15px;line-height:1.55;color:rgba(255,255,255,.82)}
+.intro-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.intro-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;border:1px solid rgba(255,255,255,.14);transition:transform .18s ease, background .18s ease, border-color .18s ease;color:#fff}
+.intro-btn:hover{transform:translateY(-1px)}
+.intro-btn-primary{background:linear-gradient(135deg, #fc7b07, #ff9f43);border-color:rgba(252,123,7,.45);color:#fff}
+.intro-btn-secondary{background:rgba(255,255,255,.06)}
+.intro-section{margin-top:18px;padding:16px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.intro-section-title{font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.04em}
+.intro-section-text{margin-top:8px;font-size:14px;line-height:1.55;color:rgba(255,255,255,.78)}
+.intro-steps{display:grid;gap:10px;margin-top:12px}
+.intro-step{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.intro-step-num{flex:0 0 28px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(252,123,7,.22);border:1px solid rgba(252,123,7,.35);color:#ffb066;font-size:13px;font-weight:800}
+.intro-step-title{font-size:14px;font-weight:700;color:#fff}
+.intro-step-text{margin-top:4px;font-size:13px;line-height:1.45;color:rgba(255,255,255,.72)}
 .media-container img, .media-container video { width: 100%; height: 100%; object-fit: cover; }
 .media-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; align-items: center; justify-content: center; z-index: 2; }
 .media-placeholder .loader-icon { width: 30px; height: 30px; border: 2px solid rgba(252, 123, 7, 0.3); border-top-color: #fc7b07; border-radius: 50%; animation: spin 1s linear infinite; }
@@ -554,7 +572,7 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .video-paused .pause-overlay { opacity: 1; }
 .side-actions { position: absolute; right: 10px; bottom: 70px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10; }
 .action-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; cursor: pointer; width: 45px; padding: 0; }
-.action-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 3px; background: rgba(252, 123, 7, 0.85); color: white; border: 1px solid rgba(255, 255, 255, 0.3); opacity: .7; }
+.action-icon { width: 38px; height: 38px; border-radius: 50%; background: rgba(252, 123, 7, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 16px; margin-bottom: 3px; opacity: .7; }
 .action-count { font-size: 10px; font-weight: 600; color: white; background: rgba(0, 0, 0, 0.5); padding: 3px 8px; border-radius: 999px; min-width: 20px; text-align: center; opacity: .7; border: 1px solid rgba(255, 255, 255, 0.18); }
 .action-btn:hover .action-icon,.action-btn:hover .action-count{opacity:1}
 
@@ -704,6 +722,12 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   .feed-btn { width: 30px; height: 30px; font-size: 12px; }
   .feed-side-panel{left:10px;top:74px}
   .feed-side-btn{width:34px;height:34px;font-size:13px}
+  .intro-post{padding:calc(80px + env(safe-area-inset-top, 0)) 14px calc(20px + env(safe-area-inset-bottom, 0))}
+  .intro-card{padding:18px 14px;border-radius:20px}
+  .intro-title{font-size:26px}
+  .intro-subtitle{font-size:14px}
+  .intro-actions{flex-direction:column}
+  .intro-btn{width:100%}
 }
 @media (max-height: 600px) {
   .modal-content { max-height: 60vh; }
@@ -866,6 +890,56 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 </div>
 
 <div class="feed-container" id="feed">
+  <section class="post intro-post" id="welcome">
+    <div class="intro-card">
+      <div class="intro-badge"><i class="fas fa-bolt"></i> Видео-платформа с входом через Telegram</div>
+      <h1 class="intro-title">Смотрите короткие видео, загружайте свои и быстро входите без регистрации.</h1>
+      <p class="intro-subtitle">MasterHacks — это лента коротких видео с простым входом через Telegram. Вы можете смотреть ролики сразу, а для загрузки своих видео и управления ими достаточно одного касания.</p>
+
+      <div class="intro-actions">
+        <?php if (defined('TELEGRAM_BOT_URL') && TELEGRAM_BOT_URL): ?>
+        <a class="intro-btn intro-btn-primary" href="<?= sanitize($addUrl) ?>" target="_blank" rel="noopener"><i class="fas fa-plus"></i> Загрузить своё видео</a>
+        <?php endif; ?>
+        <?php if (empty($_SESSION['telegram_id']) && !empty($loginBotUrl)): ?>
+        <a class="intro-btn intro-btn-secondary" href="<?= sanitize($loginBotUrl) ?>"><i class="fab fa-telegram"></i> Войти через Telegram</a>
+        <?php endif; ?>
+        <a class="intro-btn intro-btn-secondary" href="#feed-start"><i class="fas fa-play"></i> Смотреть ленту</a>
+      </div>
+
+      <div class="intro-section">
+        <div class="intro-section-title">Что вы получите</div>
+        <div class="intro-section-text">Сразу после входа вы сможете управлять своими видео, быстро загружать новые ролики через бота и следить за своей активностью без лишних форм и паролей.</div>
+      </div>
+
+      <div class="intro-section">
+        <div class="intro-section-title">Как это работает</div>
+        <div class="intro-steps">
+          <div class="intro-step">
+            <div class="intro-step-num">1</div>
+            <div>
+              <div class="intro-step-title">Откройте бота</div>
+              <div class="intro-step-text">Нажмите `Вход` или `Загрузить`, чтобы перейти в Telegram-бота MasterHacks.</div>
+            </div>
+          </div>
+          <div class="intro-step">
+            <div class="intro-step-num">2</div>
+            <div>
+              <div class="intro-step-title">Получите доступ в один клик</div>
+              <div class="intro-step-text">Бот отправит одноразовую кнопку входа. Никаких паролей и долгих регистраций.</div>
+            </div>
+          </div>
+          <div class="intro-step">
+            <div class="intro-step-num">3</div>
+            <div>
+              <div class="intro-step-title">Смотрите и публикуйте</div>
+              <div class="intro-step-text">Листайте ленту, загружайте свои видео и управляйте ими через личный кабинет на сайте.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div id="feed-start"></div>
   <?php foreach($posts as $index => $post): ?>
   <?php renderPost($post, $start + $index, $subscribedAuthors); ?>
   <?php endforeach; ?>
