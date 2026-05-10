@@ -574,7 +574,8 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .video-paused .pause-overlay { opacity: 1; }
 .side-actions { position: absolute; right: 10px; bottom: 70px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10; }
 .action-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; cursor: pointer; width: 45px; padding: 0; }
-.action-icon { width: 38px; height: 38px; border-radius: 50%; background: rgba(252, 123, 7, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 16px; margin-bottom: 3px; opacity: .7; }
+.action-icon { width: 38px; height: 38px; border-radius: 50%; background: rgba(252, 123, 7, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 16px; margin-bottom: 3px; opacity: .7; display:flex; align-items:center; justify-content:center; line-height:1; }
+.action-icon i { display:block; line-height:1; }
 .action-count { font-size: 10px; font-weight: 600; color: white; background: rgba(0, 0, 0, 0.5); padding: 3px 8px; border-radius: 999px; min-width: 20px; text-align: center; opacity: .7; border: 1px solid rgba(255, 255, 255, 0.18); }
 .action-btn:hover .action-icon,.action-btn:hover .action-count{opacity:1}
 
