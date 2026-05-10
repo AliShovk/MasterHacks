@@ -688,7 +688,7 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .bookmark-remove { background: rgba(255, 0, 0, 0.2); border: none; color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 /* Кнопка "Загрузить еще" */
-.load-more-container { width: 100%; padding: 40px 20px; text-align: center; scroll-snap-align: start; }
+.load-more-container { width: 100%; padding: 24px 20px 40px; text-align: center; scroll-snap-align: none; }
 .load-more-status { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: rgba(252, 123, 7, 0.08); border: 1px solid rgba(252, 123, 7, 0.3); color: #fc7b07; padding: 12px 18px; border-radius: 24px; font-size: 13px; font-weight: 500; letter-spacing: 0.3px; min-width: 180px; }
 .load-more-status.loading { opacity: 0.9; }
 .load-more-status i { font-size: 14px; }
@@ -1318,6 +1318,27 @@ async function loadNewPosts(currentScroll) {
 function initInfiniteScroll() {
     const feed = document.getElementById('feed');
     if (!feed) return;
+
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    if (loadMoreContainer && 'IntersectionObserver' in window) {
+        if (window.__mhLoadMoreObserver) {
+            try { window.__mhLoadMoreObserver.disconnect(); } catch (e) {}
+        }
+
+        window.__mhLoadMoreObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !state.isLoading && state.currentPage < state.totalPages) {
+                    loadMorePosts();
+                }
+            });
+        }, {
+            root: feed,
+            rootMargin: '0px 0px 220px 0px',
+            threshold: 0.1
+        });
+
+        try { window.__mhLoadMoreObserver.observe(loadMoreContainer); } catch (e) {}
+    }
     
     let isThrottled = false;
     
@@ -1335,8 +1356,8 @@ function initInfiniteScroll() {
                 const clientHeight = feed.clientHeight;
                 const scrollPosition = scrollTop + clientHeight;
                 
-                // Если осталось меньше 500px до конца и есть еще страницы
-                if (scrollHeight - scrollPosition < 500 && 
+                // Если осталось меньше 900px до конца и есть еще страницы
+                if (scrollHeight - scrollPosition < 900 && 
                     state.currentPage < state.totalPages && 
                     !state.isLoading) {
                     loadMorePosts();
