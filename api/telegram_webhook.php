@@ -124,14 +124,6 @@ function handleMessage(PDO $pdo, array $message): void {
                 $err = $e->getMessage();
                 error_log('Telegram Webhook Auth Insert Error: ' . $err);
 
-                if (defined('ADMIN_CHAT_ID') && ADMIN_CHAT_ID) {
-                    telegramApi('sendMessage', [
-                        'chat_id' => ADMIN_CHAT_ID,
-                        'text' => "Auth debug: insert failed.\ntelegram_id={$telegramId}\nerror={$err}",
-                        'parse_mode' => 'HTML'
-                    ]);
-                }
-
                 sendTelegramMessage(
                     $chatId,
                     "❌ Ошибка авторизации: не удалось сохранить токен.\nПопробуйте позже."
@@ -139,16 +131,6 @@ function handleMessage(PDO $pdo, array $message): void {
                 return;
             }
 
-            $dbName = '';
-            $dbHost = '';
-            try {
-                $dbName = (string)$pdo->query('SELECT DATABASE()')->fetchColumn();
-            } catch (Throwable $e) {
-                $dbName = '';
-            }
-            try {
-                $dbHost = (string)$pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
-            } catch (Throwable $e) {
             $check = $pdo->prepare('SELECT COUNT(*) FROM user_sessions WHERE token = :t');
             $check->execute([':t' => $token]);
             $exists = (int)$check->fetchColumn();
