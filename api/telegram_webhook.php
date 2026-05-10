@@ -83,6 +83,7 @@ function handleMessage(PDO $pdo, array $message): void {
 
     if (isset($message['text'])) {
         $text = trim($message['text']);
+        error_log('Telegram Webhook: text message received. telegram_id=' . $telegramId . '; text=' . $text);
 
         if (strpos($text, '/start') === 0) {
             $payload = trim(substr($text, 6));
@@ -101,7 +102,8 @@ function handleMessage(PDO $pdo, array $message): void {
             }
         }
 
-        if (strpos($text, '/start login') === 0) {
+        if (strpos($text, '/start login') === 0 || $text === '/login') {
+            error_log('Telegram Webhook Auth: login command accepted. telegram_id=' . $telegramId . '; text=' . $text);
             $token = bin2hex(random_bytes(16));
             $username = $from['username'] ?? null;
             $firstName = $from['first_name'] ?? '';
@@ -188,6 +190,8 @@ function handleMessage(PDO $pdo, array $message): void {
                     'parse_mode' => 'HTML'
                 ]);
             }
+
+            error_log('Telegram Webhook Auth: login token saved. telegram_id=' . $telegramId . '; token_prefix=' . substr($token, 0, 8));
 
             $loginUrl = rtrim((string)(defined('SITE_URL') ? SITE_URL : ''), '/') . '/auth.php?token=' . urlencode($token);
             if ($loginUrl === '/auth.php?token=' . urlencode($token)) {
@@ -316,6 +320,57 @@ function handleMessage(PDO $pdo, array $message): void {
         }
         return;
     }
+}
+
+function getOrCreateAuthor(PDO $pdo, array $from): array {
+    $telegramId = (int)$from['id'];
+    $username = $from['username'] ?? null;
+    $firstName = $from['first_name'] ?? '';
+    $lastName = $from['last_name'] ?? null;
+
+    $stmt = $pdo->prepare('SELECT * FROM authors WHERE telegram_id = :telegram_id');
+    $stmt->execute([':telegram_id' => $telegramId]);
+    $author = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$author) {
+        $stmt = $pdo->prepare('INSERT INTO authors (telegram_id, username, first_name, last_name, avatar_url, reputation_score, created_at) VALUES (:telegram_id, :username, :first_name, :last_name, :avatar_url, 10, NOW())');
+
+        $stmt->execute([
+            ':telegram_id' => $telegramId,
+            ':username' => $username,
+            ':first_name' => $firstName,
+            ':last_name' => $lastName,
+            ':avatar_url' => null
+        ]);
+
+        logUserAction($pdo, $telegramId, 'register', null, null, 10);
+
+        $authorId = (int)$pdo->lastInsertId();
+
+        return [
+            'id' => $authorId,
+            'telegram_id' => $telegramId,
+            'username' => $from['username'] ?? null,
+            'first_name' => $from['first_name'] ?? ''
+        ];
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE authors SET username = :username, first_name = :first_name, last_name = :last_name, last_active = NOW(), updated_at = NOW() '
+        . 'WHERE telegram_id = :telegram_id'
+    );
+    $stmt->execute([
+        ':username' => $username,
+        ':first_name' => $firstName,
+        ':last_name' => $lastName,
+        ':telegram_id' => $telegramId
+    ]);
+
+    $stmt = $pdo->prepare('SELECT * FROM authors WHERE telegram_id = :telegram_id');
+    $stmt->execute([':telegram_id' => $telegramId]);
+    $author = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $author;
 }
 
 function handleTelegramMedia(PDO $pdo, int $telegramId, string $fileId, string $type, ?int $duration): ?int {

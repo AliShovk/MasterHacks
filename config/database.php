@@ -10,8 +10,30 @@ if (!defined('PROJECT_NAME')) { define('PROJECT_NAME', getenv('PROJECT_NAME') ?:
 if (!defined('ADMIN_PANEL_KEY')) { define('ADMIN_PANEL_KEY', getenv('ADMIN_PANEL_KEY') ?: 'change_me_admin_key'); }
 if (!defined('SITE_URL')) { define('SITE_URL', getenv('SITE_URL') ?: 'http://localhost'); }
 if (!defined('TELEGRAM_BOT_TOKEN')) { define('TELEGRAM_BOT_TOKEN', getenv('TELEGRAM_BOT_TOKEN') ?: ''); }
-if (!defined('TELEGRAM_BOT_URL')) { define('TELEGRAM_BOT_URL', getenv('TELEGRAM_BOT_URL') ?: 'https://t.me/your_bot_username'); }
-if (!defined('TELEGRAM_BOT_USERNAME')) { define('TELEGRAM_BOT_USERNAME', getenv('TELEGRAM_BOT_USERNAME') ?: 'your_bot_username'); }
+
+$telegramBotUrl = trim((string)(getenv('TELEGRAM_BOT_URL') ?: ''));
+$telegramBotUsername = trim((string)(getenv('TELEGRAM_BOT_USERNAME') ?: ''));
+
+if ($telegramBotUsername === 'your_bot_username') {
+    $telegramBotUsername = '';
+}
+
+if ($telegramBotUrl === 'https://t.me/your_bot_username') {
+    $telegramBotUrl = '';
+}
+
+if ($telegramBotUsername === '' && $telegramBotUrl !== '') {
+    if (preg_match('~(?:https?://)?t\.me/([A-Za-z0-9_]+)~i', $telegramBotUrl, $m)) {
+        $telegramBotUsername = $m[1];
+    }
+}
+
+if ($telegramBotUrl === '' && $telegramBotUsername !== '') {
+    $telegramBotUrl = 'https://t.me/' . $telegramBotUsername;
+}
+
+if (!defined('TELEGRAM_BOT_URL')) { define('TELEGRAM_BOT_URL', $telegramBotUrl); }
+if (!defined('TELEGRAM_BOT_USERNAME')) { define('TELEGRAM_BOT_USERNAME', $telegramBotUsername); }
 if (!defined('ADMIN_CHAT_ID')) { define('ADMIN_CHAT_ID', getenv('ADMIN_CHAT_ID') ?: ''); }
 
 function getDatabaseConnection() {

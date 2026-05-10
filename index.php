@@ -782,8 +782,19 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
     <?php endif; ?>
 
     <?php if (empty($_SESSION['telegram_id'])): ?>
+    <?php
+      $loginBotUrl = '';
+      if (defined('TELEGRAM_BOT_USERNAME') && TELEGRAM_BOT_USERNAME) {
+          $loginBotUrl = 'tg://resolve?domain=' . rawurlencode((string)TELEGRAM_BOT_USERNAME) . '&start=login';
+      } elseif (defined('TELEGRAM_BOT_URL') && TELEGRAM_BOT_URL) {
+          $loginBotUrl = (string)TELEGRAM_BOT_URL;
+          if (strpos($loginBotUrl, 'start=') === false) {
+              $loginBotUrl .= (strpos($loginBotUrl, '?') === false ? '?' : '&') . 'start=login';
+          }
+      }
+    ?>
     <div class="tg-login-wrap">
-      <a href="tg://resolve?domain=<?= sanitize(TELEGRAM_BOT_USERNAME) ?>&start=login" class="nav-btn tg-login-btn" title="Войти через Telegram">
+      <a href="<?= sanitize($loginBotUrl) ?>" class="nav-btn tg-login-btn" title="Войти через Telegram">
         <i class="fab fa-telegram"></i>
       </a>
       <span class="tg-login-label">Вход</span>
