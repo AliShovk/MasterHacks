@@ -562,6 +562,8 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .intro-step-num{flex:0 0 28px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(252,123,7,.22);border:1px solid rgba(252,123,7,.35);color:#ffb066;font-size:13px;font-weight:800}
 .intro-step-title{font-size:14px;font-weight:700;color:#fff}
 .intro-step-text{margin-top:4px;font-size:13px;line-height:1.45;color:rgba(255,255,255,.72)}
+.intro-card{max-height:calc(100vh - 120px);overflow:auto;scrollbar-width:none}
+.intro-card::-webkit-scrollbar{display:none}
 .media-container img, .media-container video { width: 100%; height: 100%; object-fit: cover; }
 .media-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; align-items: center; justify-content: center; z-index: 2; }
 .media-placeholder .loader-icon { width: 30px; height: 30px; border: 2px solid rgba(252, 123, 7, 0.3); border-top-color: #fc7b07; border-radius: 50%; animation: spin 1s linear infinite; }
@@ -724,15 +726,35 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   .feed-side-btn{width:34px;height:34px;font-size:13px}
   .intro-post{padding:calc(80px + env(safe-area-inset-top, 0)) 14px calc(20px + env(safe-area-inset-bottom, 0))}
   .intro-card{padding:18px 14px;border-radius:20px}
+  .intro-badge{font-size:11px;padding:6px 10px}
   .intro-title{font-size:26px}
   .intro-subtitle{font-size:14px}
   .intro-actions{flex-direction:column}
   .intro-btn{width:100%}
+  .intro-section{margin-top:14px;padding:14px}
+  .intro-steps{gap:8px;margin-top:10px}
+  .intro-step{padding:10px;gap:10px}
+  .intro-step-title{font-size:13px}
+  .intro-step-text{font-size:12px;line-height:1.4}
 }
 @media (max-height: 600px) {
   .modal-content { max-height: 60vh; }
   .comments-container { max-height: calc(60vh - 130px); }
   .load-more-container { padding: 30px 20px; }
+  .intro-post{align-items:flex-start;padding:calc(72px + env(safe-area-inset-top, 0)) 12px calc(12px + env(safe-area-inset-bottom, 0))}
+  .intro-card{max-height:calc(100vh - 90px);padding:14px 12px;border-radius:18px}
+  .intro-title{margin-top:10px;font-size:22px;line-height:1.08}
+  .intro-subtitle{margin-top:8px;font-size:13px;line-height:1.4}
+  .intro-actions{margin-top:12px;gap:8px}
+  .intro-btn{min-height:40px;font-size:13px}
+  .intro-section{margin-top:12px;padding:12px;border-radius:14px}
+  .intro-section-title{font-size:12px}
+  .intro-section-text{margin-top:6px;font-size:12px;line-height:1.4}
+  .intro-steps{gap:7px;margin-top:8px}
+  .intro-step{padding:9px;gap:9px;border-radius:12px}
+  .intro-step-num{width:24px;height:24px;flex-basis:24px;font-size:12px}
+  .intro-step-title{font-size:12px}
+  .intro-step-text{margin-top:2px;font-size:11px;line-height:1.35}
 }
 
 /* Mobile video preview improvements */
