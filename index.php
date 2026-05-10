@@ -509,19 +509,11 @@ if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 $start = ($page - 1) * $posts_per_page;
 $posts = array_slice($all_posts, $start, $posts_per_page);
 
-// Если это AJAX запрос, возвращаем только посты и кнопку
+// Если это AJAX запрос, возвращаем только посты
 if ($ajax_request) {
     foreach($posts as $index => $post) {
         renderPost($post, $start + $index, $subscribedAuthors);
     }
-    
-    if ($page < $total_pages): ?>
-    <div class="load-more-container" id="loadMoreContainer">
-        <button class="load-more-btn" onclick="loadMorePosts()" id="loadMoreBtn">
-            <i class="fas fa-sync-alt"></i> Загрузить еще
-        </button>
-    </div>
-    <?php endif;
     exit;
 }
 ?>
@@ -687,12 +679,6 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .bookmark-date { font-size: 10px; color: rgba(255, 255, 255, 0.6); }
 .bookmark-remove { background: rgba(255, 0, 0, 0.2); border: none; color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
-/* Кнопка "Загрузить еще" */
-.load-more-container { width: 100%; padding: 24px 20px 40px; text-align: center; scroll-snap-align: none; }
-.load-more-status { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: rgba(252, 123, 7, 0.08); border: 1px solid rgba(252, 123, 7, 0.3); color: #fc7b07; padding: 12px 18px; border-radius: 24px; font-size: 13px; font-weight: 500; letter-spacing: 0.3px; min-width: 180px; }
-.load-more-status.loading { opacity: 0.9; }
-.load-more-status i { font-size: 14px; }
-
 @keyframes doubleTapHeart {
   0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
   25% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
@@ -712,7 +698,6 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   .modal-content { width: 98%; max-height: 65vh; }
   .comments-container { padding: 10px 12px; }
   .comment-form { padding: 10px 12px; }
-  .load-more-status { padding: 10px 16px; font-size: 12px; min-width: 160px; }
   .top-nav { padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0)); }
   .logo-image { height: 40px; }
   .nav-actions { gap: 6px; max-width: calc(100vw - 110px); }
@@ -739,7 +724,6 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 @media (max-height: 600px) {
   .modal-content { max-height: 60vh; }
   .comments-container { max-height: calc(60vh - 130px); }
-  .load-more-container { padding: 30px 20px; }
   .intro-post{align-items:flex-start;padding:calc(72px + env(safe-area-inset-top, 0)) 12px calc(12px + env(safe-area-inset-bottom, 0))}
   .intro-card{max-height:calc(100vh - 90px);padding:14px 12px;border-radius:18px}
   .intro-title{margin-top:10px;font-size:22px;line-height:1.08}
@@ -965,14 +949,6 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
   <?php renderPost($post, $start + $index, $subscribedAuthors); ?>
   <?php endforeach; ?>
   
-  <!-- Автоподгрузка -->
-  <?php if($page < $total_pages): ?>
-  <div class="load-more-container" id="loadMoreContainer">
-    <div class="load-more-status" id="loadMoreStatus">
-      <i class="fas fa-angle-double-down"></i> Листайте дальше
-    </div>
-  </div>
-  <?php endif; ?>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1318,27 +1294,6 @@ async function loadNewPosts(currentScroll) {
 function initInfiniteScroll() {
     const feed = document.getElementById('feed');
     if (!feed) return;
-
-    const loadMoreContainer = document.getElementById('loadMoreContainer');
-    if (loadMoreContainer && 'IntersectionObserver' in window) {
-        if (window.__mhLoadMoreObserver) {
-            try { window.__mhLoadMoreObserver.disconnect(); } catch (e) {}
-        }
-
-        window.__mhLoadMoreObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !state.isLoading && state.currentPage < state.totalPages) {
-                    loadMorePosts();
-                }
-            });
-        }, {
-            root: feed,
-            rootMargin: '0px 0px 220px 0px',
-            threshold: 0.1
-        });
-
-        try { window.__mhLoadMoreObserver.observe(loadMoreContainer); } catch (e) {}
-    }
     
     let isThrottled = false;
     
@@ -1374,13 +1329,6 @@ async function loadMorePosts() {
     if (state.isLoading || state.currentPage >= state.totalPages) return;
     
     state.isLoading = true;
-    const status = document.getElementById('loadMoreStatus');
-    const container = document.getElementById('loadMoreContainer');
-    
-    if (status) {
-        status.classList.add('loading');
-        status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
-    }
     
     try {
         const nextPage = state.currentPage + 1;
@@ -1402,20 +1350,11 @@ async function loadMorePosts() {
                 tempDiv.innerHTML = html;
 
                 const newPosts = Array.from(tempDiv.querySelectorAll('.post'));
-                const newLoadMore = tempDiv.querySelector('.load-more-container');
-
-                if (container) {
-                    container.remove();
-                }
 
                 const feedEl = document.getElementById('feed');
                 const frag = document.createDocumentFragment();
                 newPosts.forEach(post => frag.appendChild(post));
                 feedEl.appendChild(frag);
-
-                if (newLoadMore) {
-                    feedEl.appendChild(newLoadMore);
-                }
 
                 initVideos(feedEl);
                 initImages(feedEl);
@@ -1426,10 +1365,6 @@ async function loadMorePosts() {
 
                 showToast(`Загружено ${newPosts.length} видео`);
             } else {
-                // Если нет контента, скрываем кнопку
-                if (container) {
-                    container.style.display = 'none';
-                }
                 showToast('Больше видео нет');
             }
         } catch (error) {
@@ -1445,10 +1380,6 @@ async function loadMorePosts() {
         showToast('Ошибка загрузки');
     } finally {
         state.isLoading = false;
-        if (status && state.currentPage < state.totalPages) {
-            status.classList.remove('loading');
-            status.innerHTML = '<i class="fas fa-angle-double-down"></i> Листайте дальше';
-        }
     }
 }
 
@@ -1698,6 +1629,10 @@ function playFirstVisible() {
         }
     });
     unloadDistantVideos(keep);
+
+    if (idx >= all.length - 2 && state.currentPage < state.totalPages && !state.isLoading) {
+        loadMorePosts();
+    }
 
     if (state.activeVideo !== video) {
         try {
