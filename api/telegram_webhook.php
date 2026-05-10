@@ -149,9 +149,6 @@ function handleMessage(PDO $pdo, array $message): void {
             try {
                 $dbHost = (string)$pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
             } catch (Throwable $e) {
-                $dbHost = '';
-            }
-
             $check = $pdo->prepare('SELECT COUNT(*) FROM user_sessions WHERE token = :t');
             $check->execute([':t' => $token]);
             $exists = (int)$check->fetchColumn();
@@ -160,35 +157,11 @@ function handleMessage(PDO $pdo, array $message): void {
                     . 'telegram_id=' . $telegramId;
                 error_log('Telegram Webhook Auth Debug: ' . $msg);
 
-                $conn = '';
-                try {
-                    $conn = (string)$pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
-                } catch (Throwable $e) {
-                    $conn = '';
-                }
-
-                if (defined('ADMIN_CHAT_ID') && ADMIN_CHAT_ID) {
-                    telegramApi('sendMessage', [
-                        'chat_id' => ADMIN_CHAT_ID,
-                        'text' => "Auth debug: token insert check failed.\ntelegram_id={$telegramId}\ndb={$dbName}\nconn={$conn}",
-                        'parse_mode' => 'HTML'
-                    ]);
-                }
-
                 sendTelegramMessage(
                     $chatId,
                     "❌ Ошибка авторизации: токен не сохранился в базе.\nПопробуйте позже или сообщите администратору."
                 );
                 return;
-            }
-
-            if (defined('ADMIN_CHAT_ID') && ADMIN_CHAT_ID) {
-                $shortToken = substr($token, 0, 8) . '...';
-                telegramApi('sendMessage', [
-                    'chat_id' => ADMIN_CHAT_ID,
-                    'text' => "Auth debug: login token saved.\ntelegram_id={$telegramId}\ndb={$dbName}\nconn={$dbHost}\ntoken={$shortToken}",
-                    'parse_mode' => 'HTML'
-                ]);
             }
 
             error_log('Telegram Webhook Auth: login token saved. telegram_id=' . $telegramId . '; token_prefix=' . substr($token, 0, 8));
