@@ -117,6 +117,10 @@
     
     # Красивые URL для постов
     RewriteRule ^post/([0-9]+)$ index.php?post=$1 [L,QSA]
+    
+    # Поиск и категории
+    RewriteRule ^search$ search.php [L]
+    RewriteRule ^category/([^/]+)$ category.php?tag=$1 [L,QSA]
 </IfModule>
 
 # Запрещаем листинг папок
