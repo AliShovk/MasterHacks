@@ -107,6 +107,9 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
+    # SEO: sitemap.xml → dynamic sitemap.php
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    
     # Убираем .php расширение
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}\.php -f
