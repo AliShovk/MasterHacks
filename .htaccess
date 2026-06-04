@@ -107,6 +107,9 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
+    # Реферальные ссылки: /ref/CODE → ref.php?code=CODE
+    RewriteRule ^ref/([a-zA-Z0-9]+)$ ref.php?code=$1 [L,QSA]
+    
     # Убираем .php расширение
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}\.php -f
