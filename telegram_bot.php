@@ -2,6 +2,7 @@
 // telegram_bot.php - Исправленный бот без проблем с дубликатами
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/notify.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     require_once __DIR__ . '/api/telegram_webhook.php';
@@ -87,6 +88,11 @@ function handleMessage($message) {
         
         if (downloadFile($file_id, 'image')) {
             sendMessage($chat_id, "✅ Фото успешно загружено в ленту!");
+            // Уведомление админу
+            $userTag = $username !== 'Аноним' ? "@{$username}" : "пользователь";
+            notifyAdmin("📸 {$userTag} загрузил новое фото в ленту!");
+            // Авто-пост в канал
+            postToChannel("📸 Новое фото на MasterHacks!\n\n🔗 <a href=\"https://masterhacks.ru\">Смотреть в ленте</a>");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки фото.");
         }
@@ -101,6 +107,11 @@ function handleMessage($message) {
         
         if (downloadFile($file_id, 'video')) {
             sendMessage($chat_id, "✅ Видео успешно загружено в ленту!");
+            // Уведомление админу о новом видео
+            $userTag = $username !== 'Аноним' ? "@{$username}" : "пользователь";
+            notifyAdmin("📹 {$userTag} загрузил новое видео в ленту!");
+            // Авто-пост в канал
+            postToChannel("🎬 Новое видео на MasterHacks!\n\n🔗 <a href=\"https://masterhacks.ru\">Смотреть в ленте</a>");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки видео.");
         }
