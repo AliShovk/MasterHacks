@@ -41,15 +41,27 @@ function handleMessage($message) {
     
     file_put_contents('bot_log.txt', date('Y-m-d H:i:s') . " - Сообщение от $username ($user_id)\n", FILE_APPEND);
     
-    // Проверяем права администратора
-    if (!in_array($user_id, $admin_ids)) {
-        sendMessage($chat_id, "❌ У вас нет прав для использования этого бота.");
-        return;
-    }
-    
     // Обработка текстовых команд
     if (isset($message['text'])) {
         $text = $message['text'];
+
+        // === Subscribe/unsubscribe — доступно всем ===
+        if ($text == '/subscribe') {
+            subscribeUser($user_id, $username, $message['from']['first_name'] ?? '');
+            sendMessage($chat_id, "✅ Ты подписался на ежедневную рассылку! Каждый день в 12:00 придёт подборка лучших видео.");
+            return;
+        }
+        if ($text == '/unsubscribe') {
+            unsubscribeUser($user_id);
+            sendMessage($chat_id, "👋 Ты отписался от рассылки. Чтобы вернуться — напиши /subscribe");
+            return;
+        }
+        
+        // === Админ-команды ===
+        if (!in_array($user_id, $admin_ids)) {
+            sendMessage($chat_id, "Привет! 👋\n\nЯ бот MasterHacks. Чтобы получать ежедневную подборку лучших видео — напиши /subscribe\n\nОтписаться: /unsubscribe");
+            return;
+        }
         
         if ($text == '/start') {
             sendMessage($chat_id, "🤖 Бот для загрузки контента в ленту MasterHacks\n\nДоступные команды:\n/help - помощь\n/status - статус системы\n/invite - реферальная ссылка\n\nПросто отправьте фото или видео, и они автоматически добавятся в ленту!");
@@ -440,6 +452,36 @@ function getReferralStats($user_id) {
             . "Поделись ссылкой с друзьями!";
     } catch (Throwable $e) {
         return "❌ Ошибка получения статистики.";
+    }
+}
+
+/**
+ * Subscribe user to daily broadcast
+ */
+function subscribeUser($user_id, $username, $first_name) {
+    require_once __DIR__ . '/config/database.php';
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare(
+            "INSERT INTO broadcast_subscribers (telegram_id, username, first_name) VALUES (:uid, :uname, :fname) ON DUPLICATE KEY UPDATE username=:uname2, first_name=:fname2"
+        );
+        $stmt->execute([':uid' => $user_id, ':uname' => $username, ':fname' => $first_name, ':uname2' => $username, ':fname2' => $first_name]);
+    } catch (Throwable $e) {
+        error_log("Subscribe error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Unsubscribe user from daily broadcast
+ */
+function unsubscribeUser($user_id) {
+    require_once __DIR__ . '/config/database.php';
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare("DELETE FROM broadcast_subscribers WHERE telegram_id = :uid");
+        $stmt->execute([':uid' => $user_id]);
+    } catch (Throwable $e) {
+        error_log("Unsubscribe error: " . $e->getMessage());
     }
 }
 
