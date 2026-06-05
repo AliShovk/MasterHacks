@@ -3,11 +3,6 @@
 
 require_once __DIR__ . '/config/database.php';
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    require_once __DIR__ . '/api/telegram_webhook.php';
-    exit;
-}
-
 $bot_token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : (getenv('TELEGRAM_BOT_TOKEN') ?: '');
 $adminChatId = getenv('ADMIN_CHAT_ID') ?: '';
 $admin_ids = $adminChatId !== '' ? [(int)$adminChatId] : []; // Замените через .env
@@ -58,13 +53,13 @@ function handleMessage($message) {
         }
         
         // === Админ-команды ===
-        if (!in_array($user_id, $admin_ids)) {
-            sendMessage($chat_id, "📹 <b>Привет!</b>\n\nПросто загрузи своё видео в бота или поделись им — и оно сразу появится на MasterHacks! 🚀\n\nА ещё можешь подписаться на ежедневную рассылку лучших видео: /subscribe\nОтписаться: /unsubscribe");
-            return;
+                if ($text == '/start') {
+            sendMessage($chat_id, "📹 <b>Привет!</b>\\n\\nПросто загрузи своё видео в бота или поделись им — и оно сразу появится на MasterHacks! 🚀\\n\\nА ещё можешь подписаться на ежедневную рассылку лучших видео: /subscribe\\nОтписаться: /unsubscribe");
         }
-        
-        if ($text == '/start') {
-            sendMessage($chat_id, "📹 <b>Привет, админ!</b>\n\nЗагрузи видео или фото — попадут в ленту MasterHacks! 🚀\n\nКоманды: /help /status /invite /subscribe\n\nПросто отправь медиа и добавь название!");
+        elseif (!in_array($user_id, $admin_ids)) {
+            // Non-admin after /start — just repeat help
+            sendMessage($chat_id, "Просто загрузи видео или фото — и оно появится на MasterHacks! 🚀\n\nПодпишись на рассылку: /subscribe");
+            return;
         }
         elseif ($text == '/help') {
             sendMessage($chat_id, "📋 Помощь:\n\n1. Отправьте фото или видео в бота\n2. Файлы автоматически сохранятся в папку media/\n3. Лента обновится автоматически\n\nТребования:\n- Видео: до 50 MB\n- Фото: до 20 MB\n- Форматы: jpg, png, mp4, mov, avi");
@@ -102,7 +97,7 @@ function handleMessage($message) {
             if ($stmt->rowCount() > 0) {
                 sendMessage($chat_id, "✅ Название обновлено: <b>{$text}</b> 🎉");
             } else {
-                sendMessage($chat_id, "❓ Команда не распознана. Отправь медиафайл чтобы загрузить видео!");
+                sendMessage($chat_id, "📹 Отправь мне видео или фото — и оно появится на MasterHacks! 🚀\n\nПодпишись на рассылку: /subscribe");
             }
         }
     }
