@@ -59,12 +59,12 @@ function handleMessage($message) {
         
         // === Админ-команды ===
         if (!in_array($user_id, $admin_ids)) {
-            sendMessage($chat_id, "Привет! 👋\n\nЯ бот MasterHacks. Чтобы получать ежедневную подборку лучших видео — напиши /subscribe\n\nОтписаться: /unsubscribe");
+            sendMessage($chat_id, "📹 <b>Привет!</b>\n\nПросто загрузи своё видео в бота или поделись им — и оно сразу появится на MasterHacks! 🚀\n\nА ещё можешь подписаться на ежедневную рассылку лучших видео: /subscribe\nОтписаться: /unsubscribe");
             return;
         }
         
         if ($text == '/start') {
-            sendMessage($chat_id, "🤖 Бот для загрузки контента в ленту MasterHacks\n\nДоступные команды:\n/help - помощь\n/status - статус системы\n/invite - реферальная ссылка\n\nПросто отправьте фото или видео, и они автоматически добавятся в ленту!");
+            sendMessage($chat_id, "📹 <b>Привет, админ!</b>\n\nЗагрузи видео или фото — попадут в ленту MasterHacks! 🚀\n\nКоманды: /help /status /invite /subscribe\n\nПросто отправь медиа и добавь название!");
         }
         elseif ($text == '/help') {
             sendMessage($chat_id, "📋 Помощь:\n\n1. Отправьте фото или видео в бота\n2. Файлы автоматически сохранятся в папку media/\n3. Лента обновится автоматически\n\nТребования:\n- Видео: до 50 MB\n- Фото: до 20 MB\n- Форматы: jpg, png, mp4, mov, avi");
@@ -94,7 +94,16 @@ function handleMessage($message) {
             sendMessage($chat_id, $stats);
         }
         else {
-            sendMessage($chat_id, "❓ Неизвестная команда. Используйте /help для справки.");
+            // Try using text as title for last uploaded video
+            require_once __DIR__ . '/config/database.php';
+            $pdo = getDatabaseConnection();
+            $stmt = $pdo->prepare("UPDATE videos SET title = :t WHERE telegram_id = :uid AND (title IS NULL OR title = '') ORDER BY id DESC LIMIT 1");
+            $stmt->execute([':t' => str_replace("'", "\\'", trim($text)), ':uid' => $user_id]);
+            if ($stmt->rowCount() > 0) {
+                sendMessage($chat_id, "✅ Название обновлено: <b>{$text}</b> 🎉");
+            } else {
+                sendMessage($chat_id, "❓ Команда не распознана. Отправь медиафайл чтобы загрузить видео!");
+            }
         }
     }
     
@@ -104,10 +113,10 @@ function handleMessage($message) {
         $photo = end($photos); // Берем фото самого высокого качества
         $file_id = $photo['file_id'];
         
-        sendMessage($chat_id, "📸 Получено фото, начинаю загрузку...");
+        sendMessage($chat_id, "📸 Фото получено! Сохраняю...");
         
         if (downloadFile($file_id, 'image')) {
-            sendMessage($chat_id, "✅ Фото успешно загружено в ленту!");
+            sendMessage($chat_id, "✅ Фото загружено! Отправь мне <b>название</b> для него ✍️");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки фото.");
         }
@@ -118,10 +127,10 @@ function handleMessage($message) {
         $video = $message['video'];
         $file_id = $video['file_id'];
         
-        sendMessage($chat_id, "🎥 Получено видео, начинаю загрузку...");
+        sendMessage($chat_id, "🎥 Видео получено! Сохраняю...");
         
         if (downloadFile($file_id, 'video')) {
-            sendMessage($chat_id, "✅ Видео успешно загружено в ленту!");
+            sendMessage($chat_id, "✅ Видео загружено! Отправь мне <b>название</b> для него — просто напиши текст сюда ✍️");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки видео.");
         }
