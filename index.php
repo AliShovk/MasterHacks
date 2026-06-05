@@ -179,6 +179,8 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
             $sql = "SELECT 
                     v.id,
                     v.filename,
+                    v.title,
+                    v.description,
                     v.file_type AS type,
                     v.views,
                     v.likes,
@@ -218,11 +220,11 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
 
                 $fallbackSqls = [
                     // full videos columns (without authors)
-                    "SELECT v.id, v.filename, v.file_type AS type, v.views, v.likes, v.comments_count, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
+                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, v.views, v.likes, v.comments_count, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
                     // minimal (no views/comments_count)
-                    "SELECT v.id, v.filename, v.file_type AS type, v.likes, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
+                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, v.likes, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
                     // super minimal
-                    "SELECT v.id, v.filename, v.file_type AS type, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC"
+                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC"
                 ];
 
                 foreach ($fallbackSqls as $fsql) {
@@ -245,6 +247,8 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
             $posts = array_map(function($row) {
                 return [
                     'id' => (int)($row['id'] ?? 0),
+                    'title' => (string)($row['title'] ?? ''),
+                    'description' => (string)($row['description'] ?? ''),
                     'filename' => (string)($row['filename'] ?? ''),
                     'type' => (string)($row['type'] ?? 'video'),
                     'views' => (int)($row['views'] ?? 0),
@@ -359,7 +363,7 @@ function renderPost($post, $index, $subscribedAuthors = []) {
     $sanitizedType = sanitize($post['type']);
     $sanitizedFilename = sanitize($post['filename']);
     $postDate = date('d.m.Y', strtotime($post['date']));
-    $postDescription = sanitize(pathinfo($post['filename'], PATHINFO_FILENAME));
+    $postDescription = sanitize($post['title'] ?: pathinfo($post['filename'], PATHINFO_FILENAME));
     if (function_exists('mb_strlen') && mb_strlen($postDescription) > 20) {
         $postDescription = mb_substr($postDescription, 0, 20) . '…';
     } elseif (strlen($postDescription) > 20) {
@@ -1997,20 +2001,26 @@ function mediaLoaded(element, postId) {
 
 function mediaError(element, postId) {
     const placeholder = document.getElementById('placeholder-' + postId);
-    if (placeholder) {
-        placeholder.innerHTML = '<span style="color:#fc7b07;">Ошибка</span>';
-    }
-
     const postEl = element && element.closest ? element.closest('.post') : null;
+    var retries = (element.dataset.loadRetries | 0) || 0;
+    if (retries < 2) {
+        element.dataset.loadRetries = retries + 1;
+        if (placeholder) placeholder.innerHTML = '<span style="color:#fc7b07;">Загрузка...</span>';
+        setTimeout(function() {
+            var src = element.getAttribute('data-src') || element.src;
+            element.src = '';
+            setTimeout(function() { element.src = src; }, 300);
+        }, 2500);
+        return;
+    }
+    if (placeholder) placeholder.innerHTML = '<span style="color:#fc7b07;">Ошибка</span>';
     if (postEl && postEl.parentNode) {
         if (state.activeVideo && postEl.contains(state.activeVideo)) {
             try { state.activeVideo.pause(); } catch (e) {}
             state.activeVideo = null;
         }
         postEl.parentNode.removeChild(postEl);
-        requestAnimationFrame(() => {
-            playFirstVisible();
-        });
+        requestAnimationFrame(function() { playFirstVisible(); });
     }
 }
 
@@ -2022,20 +2032,27 @@ function videoCanPlay(element, postId) {
 
 function videoError(element, postId) {
     const placeholder = document.getElementById('placeholder-' + postId);
-    if (placeholder) {
-        placeholder.innerHTML = '<span style="color:#fc7b07;">Ошибка</span>';
-    }
-
     const postEl = element && element.closest ? element.closest('.post') : null;
+    var retries = (element.dataset.loadRetries | 0) || 0;
+    if (retries < 2) {
+        element.dataset.loadRetries = retries + 1;
+        if (placeholder) placeholder.innerHTML = '<span style="color:#fc7b07;">Загрузка...</span>';
+        setTimeout(function() {
+            var src = element.getAttribute('data-src') || element.src;
+            element.src = '';
+            element.load();
+            setTimeout(function() { element.src = src; element.load(); }, 200);
+        }, 2500);
+        return;
+    }
+    if (placeholder) placeholder.innerHTML = '<span style="color:#fc7b07;">Ошибка</span>';
     if (postEl && postEl.parentNode) {
         if (state.activeVideo && postEl.contains(state.activeVideo)) {
             try { state.activeVideo.pause(); } catch (e) {}
             state.activeVideo = null;
         }
         postEl.parentNode.removeChild(postEl);
-        requestAnimationFrame(() => {
-            playFirstVisible();
-        });
+        requestAnimationFrame(function() { playFirstVisible(); });
     }
 }
 
