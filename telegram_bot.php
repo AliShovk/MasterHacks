@@ -52,7 +52,7 @@ function handleMessage($message) {
         $text = $message['text'];
         
         if ($text == '/start') {
-            sendMessage($chat_id, "🤖 Бот для загрузки контента в ленту MasterHacks\n\nДоступные команды:\n/help - помощь\n/status - статус системы\n\nПросто отправьте фото или видео, и они автоматически добавятся в ленту!");
+            sendMessage($chat_id, "🤖 Бот для загрузки контента в ленту MasterHacks\n\nДоступные команды:\n/help - помощь\n/status - статус системы\n/invite - реферальная ссылка\n\nПросто отправьте фото или видео, и они автоматически добавятся в ленту!");
         }
         elseif ($text == '/help') {
             sendMessage($chat_id, "📋 Помощь:\n\n1. Отправьте фото или видео в бота\n2. Файлы автоматически сохранятся в папку media/\n3. Лента обновится автоматически\n\nТребования:\n- Видео: до 50 MB\n- Фото: до 20 MB\n- Форматы: jpg, png, mp4, mov, avi");
@@ -71,6 +71,15 @@ function handleMessage($message) {
             sendMessage($chat_id, "✅ Сканирование запущено. Через 5 секунд лента обновится.");
             sleep(5);
             updateFeed();
+        }
+        elseif ($text == '/invite') {
+            $code = generateReferralCode($user_id, $username);
+            $link = "https://masterhacks.ru/ref/{$code}";
+            sendMessage($chat_id, "🔗 Твоя реферальная ссылка:\n\n{$link}\n\nПоделись с друзьями! За каждого приглашённого ты получаешь баллы.\n\nСтатистика: /mystats");
+        }
+        elseif ($text == '/mystats') {
+            $stats = getReferralStats($user_id);
+            sendMessage($chat_id, $stats);
         }
         else {
             sendMessage($chat_id, "❓ Неизвестная команда. Используйте /help для справки.");
@@ -356,6 +365,82 @@ function showInfoPage() {
         </div>
     </body>
     </html>';
+}
+
+/**
+ * Generate or retrieve a unique referral code for a user.
+ */
+function generateReferralCode($user_id, $username) {
+    require_once __DIR__ . '/config/database.php';
+    
+    try {
+        $pdo = getDatabaseConnection();
+        
+        // Check if user already has a code
+        $stmt = $pdo->prepare("SELECT code FROM referrals WHERE referrer_id = :uid LIMIT 1");
+        $stmt->execute([':uid' => $user_id]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($existing) {
+            return $existing['code'];
+        }
+        
+        // Generate new unique code
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        do {
+            $code = '';
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+            $check = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE code = :code");
+            $check->execute([':code' => $code]);
+        } while ($check->fetchColumn() > 0);
+        
+        $stmt = $pdo->prepare(
+            "INSERT INTO referrals (code, referrer_id, referrer_name) VALUES (:code, :uid, :name)"
+        );
+        $stmt->execute([
+            ':code' => $code,
+            ':uid' => $user_id,
+            ':name' => $username
+        ]);
+        
+        return $code;
+    } catch (Throwable $e) {
+        error_log("Referral error: " . $e->getMessage());
+        return 'error';
+    }
+}
+
+/**
+ * Get referral statistics for a user.
+ */
+function getReferralStats($user_id) {
+    require_once __DIR__ . '/config/database.php';
+    
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare(
+            "SELECT code, clicks, created_at FROM referrals WHERE referrer_id = :uid"
+        );
+        $stmt->execute([':uid' => $user_id]);
+        $ref = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$ref) {
+            return "📊 У тебя пока нет реферальной ссылки. Используй /invite чтобы создать!";
+        }
+        
+        $link = "https://masterhacks.ru/ref/{$ref['code']}";
+        $date = date('d.m.Y', strtotime($ref['created_at']));
+        
+        return "📊 Твоя реферальная статистика:\n\n"
+            . "🔗 Ссылка: {$link}\n"
+            . "👆 Кликов: {$ref['clicks']}\n"
+            . "📅 Создана: {$date}\n\n"
+            . "Поделись ссылкой с друзьями!";
+    } catch (Throwable $e) {
+        return "❌ Ошибка получения статистики.";
+    }
 }
 
 // Если скрипт запущен не через вебхук, показываем инфостраницу
