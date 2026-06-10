@@ -16,21 +16,9 @@ try {
         if ($video_id <= 0) { http_response_code(400); echo json_encode(['success'=>false,'error'=>'Invalid video_id']); exit; }
 
         if ($action === 'approve') {
-            // Get filename for uniquifier
-            $stmt = $pdo->prepare("SELECT filename FROM videos WHERE id = ?");
-            $stmt->execute([$video_id]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            $filename = $row['filename'] ?? '';
-
-            // Approve
+            // Video is already prepared (title, tags, uniquify) by prepare_video.py at upload
             $stmt = $pdo->prepare("UPDATE videos SET status = 'approved', published_at = NOW() WHERE id = ?");
             $stmt->execute([$video_id]);
-
-            // Uniquify in background (pass filename directly)
-            if ($filename) {
-                $cmd = 'python3 ' . escapeshellarg(__DIR__.'/uniquify_video.py') . ' ' . escapeshellarg($filename) . ' > /dev/null 2>&1 &';
-                exec($cmd);
-            }
         } else {
             $stmt = $pdo->prepare("UPDATE videos SET status = 'rejected' WHERE id = ?");
             $stmt->execute([$video_id]);
