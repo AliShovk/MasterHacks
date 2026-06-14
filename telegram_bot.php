@@ -3,11 +3,6 @@
 
 require_once __DIR__ . '/config/database.php';
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    require_once __DIR__ . '/api/telegram_webhook.php';
-    exit;
-}
-
 $bot_token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : (getenv('TELEGRAM_BOT_TOKEN') ?: '');
 $adminChatId = getenv('ADMIN_CHAT_ID') ?: '';
 $admin_ids = $adminChatId !== '' ? [(int)$adminChatId] : []; // Замените через .env
@@ -41,18 +36,30 @@ function handleMessage($message) {
     
     file_put_contents('bot_log.txt', date('Y-m-d H:i:s') . " - Сообщение от $username ($user_id)\n", FILE_APPEND);
     
-    // Проверяем права администратора
-    if (!in_array($user_id, $admin_ids)) {
-        sendMessage($chat_id, "❌ У вас нет прав для использования этого бота.");
-        return;
-    }
-    
     // Обработка текстовых команд
     if (isset($message['text'])) {
         $text = $message['text'];
+
+        // === Subscribe/unsubscribe — доступно всем ===
+        if ($text == '/subscribe') {
+            subscribeUser($user_id, $username, $message['from']['first_name'] ?? '');
+            sendMessage($chat_id, "✅ Ты подписался на ежедневную рассылку! Каждый день в 12:00 придёт подборка лучших видео.");
+            return;
+        }
+        if ($text == '/unsubscribe') {
+            unsubscribeUser($user_id);
+            sendMessage($chat_id, "👋 Ты отписался от рассылки. Чтобы вернуться — напиши /subscribe");
+            return;
+        }
         
-        if ($text == '/start') {
-            sendMessage($chat_id, "🤖 Бот для загрузки контента в ленту MasterHacks\n\nДоступные команды:\n/help - помощь\n/status - статус системы\n\nПросто отправьте фото или видео, и они автоматически добавятся в ленту!");
+        // === Админ-команды ===
+                if ($text == '/start') {
+            sendMessage($chat_id, "📹 <b>Привет!</b>\\n\\nПросто загрузи своё видео в бота или поделись им — и оно сразу появится на MasterHacks! 🚀\\n\\nА ещё можешь подписаться на ежедневную рассылку лучших видео: /subscribe\\nОтписаться: /unsubscribe");
+        }
+        elseif (!in_array($user_id, $admin_ids)) {
+            // Non-admin after /start — just repeat help
+            sendMessage($chat_id, "Просто загрузи видео или фото — и оно появится на MasterHacks! 🚀\n\nПодпишись на рассылку: /subscribe");
+            return;
         }
         elseif ($text == '/help') {
             sendMessage($chat_id, "📋 Помощь:\n\n1. Отправьте фото или видео в бота\n2. Файлы автоматически сохранятся в папку media/\n3. Лента обновится автоматически\n\nТребования:\n- Видео: до 50 MB\n- Фото: до 20 MB\n- Форматы: jpg, png, mp4, mov, avi");
@@ -72,8 +79,26 @@ function handleMessage($message) {
             sleep(5);
             updateFeed();
         }
+        elseif ($text == '/invite') {
+            $code = generateReferralCode($user_id, $username);
+            $link = "https://masterhacks.ru/ref/{$code}";
+            sendMessage($chat_id, "🔗 Твоя реферальная ссылка:\n\n{$link}\n\nПоделись с друзьями! За каждого приглашённого ты получаешь баллы.\n\nСтатистика: /mystats");
+        }
+        elseif ($text == '/mystats') {
+            $stats = getReferralStats($user_id);
+            sendMessage($chat_id, $stats);
+        }
         else {
-            sendMessage($chat_id, "❓ Неизвестная команда. Используйте /help для справки.");
+            // Try using text as title for last uploaded video
+            require_once __DIR__ . '/config/database.php';
+            $pdo = getDatabaseConnection();
+            $stmt = $pdo->prepare("UPDATE videos SET title = :t WHERE telegram_id = :uid AND (title IS NULL OR title = '') ORDER BY id DESC LIMIT 1");
+            $stmt->execute([':t' => str_replace("'", "\\'", trim($text)), ':uid' => $user_id]);
+            if ($stmt->rowCount() > 0) {
+                sendMessage($chat_id, "✅ Название обновлено: <b>{$text}</b> 🎉");
+            } else {
+                sendMessage($chat_id, "📹 Отправь мне видео или фото — и оно появится на MasterHacks! 🚀\n\nПодпишись на рассылку: /subscribe");
+            }
         }
     }
     
@@ -83,10 +108,10 @@ function handleMessage($message) {
         $photo = end($photos); // Берем фото самого высокого качества
         $file_id = $photo['file_id'];
         
-        sendMessage($chat_id, "📸 Получено фото, начинаю загрузку...");
+        sendMessage($chat_id, "📸 Фото получено! Сохраняю...");
         
         if (downloadFile($file_id, 'image')) {
-            sendMessage($chat_id, "✅ Фото успешно загружено в ленту!");
+            sendMessage($chat_id, "✅ Фото загружено! Отправь мне <b>название</b> для него ✍️");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки фото.");
         }
@@ -97,10 +122,10 @@ function handleMessage($message) {
         $video = $message['video'];
         $file_id = $video['file_id'];
         
-        sendMessage($chat_id, "🎥 Получено видео, начинаю загрузку...");
+        sendMessage($chat_id, "🎥 Видео получено! Сохраняю...");
         
         if (downloadFile($file_id, 'video')) {
-            sendMessage($chat_id, "✅ Видео успешно загружено в ленту!");
+            sendMessage($chat_id, "✅ Видео загружено! Отправь мне <b>название</b> для него — просто напиши текст сюда ✍️");
         } else {
             sendMessage($chat_id, "❌ Ошибка загрузки видео.");
         }
@@ -356,6 +381,112 @@ function showInfoPage() {
         </div>
     </body>
     </html>';
+}
+
+/**
+ * Generate or retrieve a unique referral code for a user.
+ */
+function generateReferralCode($user_id, $username) {
+    require_once __DIR__ . '/config/database.php';
+    
+    try {
+        $pdo = getDatabaseConnection();
+        
+        // Check if user already has a code
+        $stmt = $pdo->prepare("SELECT code FROM referrals WHERE referrer_id = :uid LIMIT 1");
+        $stmt->execute([':uid' => $user_id]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($existing) {
+            return $existing['code'];
+        }
+        
+        // Generate new unique code
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        do {
+            $code = '';
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+            $check = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE code = :code");
+            $check->execute([':code' => $code]);
+        } while ($check->fetchColumn() > 0);
+        
+        $stmt = $pdo->prepare(
+            "INSERT INTO referrals (code, referrer_id, referrer_name) VALUES (:code, :uid, :name)"
+        );
+        $stmt->execute([
+            ':code' => $code,
+            ':uid' => $user_id,
+            ':name' => $username
+        ]);
+        
+        return $code;
+    } catch (Throwable $e) {
+        error_log("Referral error: " . $e->getMessage());
+        return 'error';
+    }
+}
+
+/**
+ * Get referral statistics for a user.
+ */
+function getReferralStats($user_id) {
+    require_once __DIR__ . '/config/database.php';
+    
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare(
+            "SELECT code, clicks, created_at FROM referrals WHERE referrer_id = :uid"
+        );
+        $stmt->execute([':uid' => $user_id]);
+        $ref = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$ref) {
+            return "📊 У тебя пока нет реферальной ссылки. Используй /invite чтобы создать!";
+        }
+        
+        $link = "https://masterhacks.ru/ref/{$ref['code']}";
+        $date = date('d.m.Y', strtotime($ref['created_at']));
+        
+        return "📊 Твоя реферальная статистика:\n\n"
+            . "🔗 Ссылка: {$link}\n"
+            . "👆 Кликов: {$ref['clicks']}\n"
+            . "📅 Создана: {$date}\n\n"
+            . "Поделись ссылкой с друзьями!";
+    } catch (Throwable $e) {
+        return "❌ Ошибка получения статистики.";
+    }
+}
+
+/**
+ * Subscribe user to daily broadcast
+ */
+function subscribeUser($user_id, $username, $first_name) {
+    require_once __DIR__ . '/config/database.php';
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare(
+            "INSERT INTO broadcast_subscribers (telegram_id, username, first_name) VALUES (:uid, :uname, :fname) ON DUPLICATE KEY UPDATE username=:uname2, first_name=:fname2"
+        );
+        $stmt->execute([':uid' => $user_id, ':uname' => $username, ':fname' => $first_name, ':uname2' => $username, ':fname2' => $first_name]);
+    } catch (Throwable $e) {
+        error_log("Subscribe error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Unsubscribe user from daily broadcast
+ */
+function unsubscribeUser($user_id) {
+    require_once __DIR__ . '/config/database.php';
+    try {
+        $pdo = getDatabaseConnection();
+        $stmt = $pdo->prepare("DELETE FROM broadcast_subscribers WHERE telegram_id = :uid");
+        $stmt->execute([':uid' => $user_id]);
+    } catch (Throwable $e) {
+        error_log("Unsubscribe error: " . $e->getMessage());
+    }
 }
 
 // Если скрипт запущен не через вебхук, показываем инфостраницу

@@ -1,19 +1,16 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /config/
-Disallow: /data/
-Disallow: /sql/
+Disallow: /admin*
+Disallow: /config*
+Disallow: /api*
+Disallow: /data*
+Disallow: /*.json$
+Disallow: /*.log$
+Disallow: /bot.php
+Disallow: /set_webhook.php
+Disallow: /cancel_upload.php
+Disallow: /delete_video.php
+Disallow: /run_cleanup.php
+Disallow: /cleanup_broken_videos.php
 
-Sitemap: https://masterhacks.ru/sitemap.xml
-
-# Crawl-delay: 10
-User-agent: Googlebot
-Allow: /
-
-User-agent: Yandex
-Allow: /
-Disallow: /admin/
-
-User-agent: Bingbot
-Allow: /
+Sitemap: https://masterhacks.ru/sitemap.php
