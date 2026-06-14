@@ -551,6 +551,7 @@ if ($ajax_request) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="canonical" href="https://masterhacks.ru/">
 <title>MasterHacks | Лента</title>
 <meta name="description" content="Полезные видео для дома, хозяйства и строительства. Лайфхаки, DIY, ремонт своими руками. Смотрите короткие инструкции и советы от мастеров."><meta name="keywords" content="DIY, хозяйство, строительство, ремонт, своими руками, лайфхаки, дом, дача, мастер, видео, инструкция, совет"><meta property="og:title" content="MasterHacks - Полезные видео для дома и строительства"><meta property="og:description" content="Короткие видео-инструкции по ремонту, хозяйству и строительству. Лайфхаки для дома своими руками."><meta property="og:image" content="https://masterhacks.ru/gk.png"><meta property="og:url" content="https://masterhacks.ru"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="MasterHacks - Полезные видео для дома"><meta name="twitter:description" content="Короткие видео-инструкции по ремонту и хозяйству. DIY своими руками."><meta name="twitter:image" content="https://masterhacks.ru/gk.png">
 <link rel="icon" type="image/png" href="/gk.png">

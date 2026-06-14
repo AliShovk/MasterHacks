@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && is_numeric($_G
     <meta name="description" content="<?= $eDesc ?>">
     <?php if ($eKeywords): ?><meta name="keywords" content="<?= $eKeywords ?>"><?php endif; ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="<?= $pageUrl ?>">
 
     <!-- Open Graph -->
     <meta property="og:title" content="<?= $eTitle ?>">
