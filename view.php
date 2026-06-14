@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && is_numeric($_G
     try {
         $pdo = getDatabaseConnection();
         $stmt = $pdo->prepare(
-            'SELECT id, filename, file_type, title, description, views, likes,
+            'SELECT id, filename, file_type, title, description, tags, views, likes,
                     COALESCE(published_at, created_at) AS published_at
              FROM videos
              WHERE id = :id AND status = \'approved\''
@@ -46,6 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && is_numeric($_G
     $videoUrl    = 'https://masterhacks.ru/media/' . rawurlencode($video['filename']);
     $pageUrl     = 'https://masterhacks.ru/view.php?id=' . $videoId;
     $uploadDate  = date('c', strtotime($video['published_at'] ?? 'now'));
+    $videoTags   = [];
+    if (!empty($video['tags'])) {
+        foreach (explode(' ', $video['tags']) as $t) {
+            $t = trim($t, '# ');
+            if ($t !== '') $videoTags[] = $t;
+        }
+    }
+    $eKeywords   = htmlspecialchars(implode(', ', $videoTags), ENT_QUOTES, 'UTF-8');
     $views       = (int)($video['views'] ?? 0);
     $likes       = (int)($video['likes'] ?? 0);
 
@@ -68,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && is_numeric($_G
     <meta charset="utf-8">
     <title><?= $eTitle ?> — MasterHacks</title>
     <meta name="description" content="<?= $eDesc ?>">
+    <?php if ($eKeywords): ?><meta name="keywords" content="<?= $eKeywords ?>"><?php endif; ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Open Graph -->
@@ -102,6 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && is_numeric($_G
       "contentUrl": <?= json_encode($videoUrl, JSON_UNESCAPED_UNICODE) ?>,
       "embedUrl": <?= json_encode($videoUrl, JSON_UNESCAPED_UNICODE) ?>,
       "uploadDate": <?= json_encode($uploadDate, JSON_UNESCAPED_UNICODE) ?>,
+<?php if ($videoTags): ?>      "keywords": <?= json_encode(implode(', ', $videoTags), JSON_UNESCAPED_UNICODE) ?>,
+<?php endif; ?>
       "interactionStatistic": [
         {
           "@type": "InteractionCounter",

@@ -176,11 +176,22 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
                 return [];
             }
 
+            // Tag filtering
+            $tagFilter = '';
+            $activeTag = '';
+            if (!empty($_GET['tag'])) {
+                $activeTag = trim((string)$_GET['tag']);
+                if ($activeTag !== '') {
+                    $tagFilter = ' AND v.tags LIKE ' . $pdo->quote('%#' . $activeTag . '%');
+                }
+            }
+
             $sql = "SELECT 
                     v.id,
                     v.filename,
                     v.title,
                     v.description,
+                    v.tags,
                     v.file_type AS type,
                     v.views,
                     v.likes,
@@ -200,7 +211,7 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
                 $params[':sid'] = $subscriberTelegramId;
             }
 
-            $sql .= " WHERE v.status = 'approved'
+            $sql .= " WHERE v.status = 'approved'" . $tagFilter . "
                 ORDER BY COALESCE(v.published_at, v.created_at) DESC";
 
             $rows = [];
@@ -220,11 +231,11 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
 
                 $fallbackSqls = [
                     // full videos columns (without authors)
-                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, v.views, v.likes, v.comments_count, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
+                    "SELECT v.id, v.filename, v.title, v.description, v.tags, v.file_type AS type, v.views, v.likes, v.comments_count, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved'" . $tagFilter . " ORDER BY COALESCE(v.published_at, v.created_at) DESC",
                     // minimal (no views/comments_count)
-                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, v.likes, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC",
+                    "SELECT v.id, v.filename, v.title, v.description, v.tags, v.file_type AS type, v.likes, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved'" . $tagFilter . " ORDER BY COALESCE(v.published_at, v.created_at) DESC",
                     // super minimal
-                    "SELECT v.id, v.filename, v.title, v.description, v.file_type AS type, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved' ORDER BY COALESCE(v.published_at, v.created_at) DESC"
+                    "SELECT v.id, v.filename, v.title, v.description, v.tags, v.file_type AS type, COALESCE(v.published_at, v.created_at) AS date, NULL AS author_id, v.telegram_id AS author_telegram_id, NULL AS author_username, NULL AS author_first_name, 0 AS author_verified FROM videos v{$joinSubscriptions} WHERE v.status = 'approved'" . $tagFilter . " ORDER BY COALESCE(v.published_at, v.created_at) DESC"
                 ];
 
                 foreach ($fallbackSqls as $fsql) {
@@ -249,6 +260,7 @@ function getPostsWithCache($posts_file, $cache_file, $cache_time, $feed_type = '
                     'id' => (int)($row['id'] ?? 0),
                     'title' => (string)($row['title'] ?? ''),
                     'description' => (string)($row['description'] ?? ''),
+                    'tags' => (string)($row['tags'] ?? ''),
                     'filename' => (string)($row['filename'] ?? ''),
                     'type' => (string)($row['type'] ?? 'video'),
                     'views' => (int)($row['views'] ?? 0),
@@ -369,6 +381,7 @@ function renderPost($post, $index, $subscribedAuthors = []) {
     } elseif (strlen($postDescription) > 20) {
         $postDescription = substr($postDescription, 0, 20) . '…';
     }
+    $postTags = trim((string)($post['tags'] ?? ''));
     $likes = intval($post['likes'] ?? 0);
     $commentsCount = intval($post['comments_count'] ?? 0);
     $authorTelegramId = isset($post['author_telegram_id']) ? (int)$post['author_telegram_id'] : 0;
@@ -421,6 +434,18 @@ function renderPost($post, $index, $subscribedAuthors = []) {
             <div class="post-description">
                 <?= $postDescription ?>
             </div>
+            <?php if ($postTags): ?>
+            <div class="post-tags">
+                <?php foreach (explode(' ', $postTags) as $tag):
+                    $tag = trim($tag);
+                    if ($tag === '') continue;
+                    $tagName = ltrim($tag, '#');
+                    $tagEncoded = rawurlencode($tagName);
+                ?>
+                <a href="/?tag=<?= $tagEncoded ?>" class="post-tag"><?= sanitize($tag) ?></a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             <div class="post-meta">
                 <div class="post-author">
                     <div class="author-avatar">M</div>
@@ -601,7 +626,14 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
 .feed-side-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);color:#fff;cursor:pointer;text-decoration:none;backdrop-filter:blur(6px)}
 .feed-side-btn.active{background:rgba(252,123,7,.20);border-color:rgba(252,123,7,.45);color:#fc7b07}
 .post-info { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)); background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 5; }
-.post-description { max-width: 80%; font-size: 14px; line-height: 1.3; margin-bottom: 6px; color: white; }
+.post-description { max-width: 80%; font-size: 14px; line-height: 1.3; margin-bottom: 2px; color: white; }
+.post-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.post-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; background: rgba(252, 123, 7, 0.15); color: #fc7b07; font-size: 12px; text-decoration: none; transition: background 0.2s; }
+.post-tag:hover { background: rgba(252, 123, 7, 0.35); color: #ff9d3a; }
+.tag-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-bottom: 1px solid #222; }
+.tag-bar::-webkit-scrollbar { display: none; }
+.tag-bar-item { display: inline-block; padding: 6px 14px; border-radius: 16px; background: #1a1a1a; color: #aaa; font-size: 13px; text-decoration: none; white-space: nowrap; transition: all 0.2s; }
+.tag-bar-item:hover, .tag-bar-item.active { background: #fc7b07; color: #fff; }
 .post-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.8); }
 .author-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #fc7b07, #ff9d3a); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 11px; }
 .sound-controls { position: absolute; bottom: 12px; right: 22px; z-index: 100; display: flex; gap: 16px; }
@@ -949,6 +981,35 @@ body { position: fixed; width: 100%; height: 100%; overflow: hidden; }
     </div>
   </section>
   <div id="feed-start"></div>
+  <?php
+  // Tag bar: show popular tags
+  if (!empty($posts)):
+      $allTags = [];
+      foreach ($posts as $p) {
+          $t = trim((string)($p['tags'] ?? ''));
+          if ($t !== '') {
+              foreach (explode(' ', $t) as $tag) {
+                  $tag = trim($tag);
+                  if ($tag !== '' && strpos($tag, '#') === 0) {
+                      $tagName = ltrim($tag, '#');
+                      if (!isset($allTags[$tagName])) $allTags[$tagName] = 0;
+                      $allTags[$tagName]++;
+                  }
+              }
+          }
+      }
+      arsort($allTags);
+      $allTags = array_slice($allTags, 0, 15, true);
+      ?>
+  <div class="tag-bar">
+      <?php foreach ($allTags as $tagName => $count):
+          $tagEncoded = rawurlencode($tagName);
+          $isActive = ($activeTag === $tagName);
+      ?>
+      <a href="/?tag=<?= $tagEncoded ?>" class="tag-bar-item<?= $isActive ? ' active' : '' ?>">#<?= sanitize($tagName) ?></a>
+      <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <?php foreach($posts as $index => $post): ?>
   <?php renderPost($post, $start + $index, $subscribedAuthors); ?>
   <?php endforeach; ?>
